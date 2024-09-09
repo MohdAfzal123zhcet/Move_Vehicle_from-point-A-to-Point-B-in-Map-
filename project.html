@@ -5,31 +5,76 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Leaflet Routing with Vehicle Animation</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
     <style>
-        #map {
-            height: 600px;
+        html, body {
+            margin: 0;
+            padding: 0;
+            height: 100%;
             width: 100%;
-            position: relative; /* Ensure map container is positioned for absolute child elements */
+            overflow: hidden; /* Prevent scrollbars on the body */
         }
-        .leaflet-routing-container-hide {
-            display: none;
+        #map {
+            height: 100vh;
+            width: 100%;
         }
         #controls {
             position: absolute;
-            top: 100px; /* Move controls further down */
-            left: 10px; /* Align with zoom controls */
+            top: 110px; /* Position below the zoom controls */
+            left: 10px; /* Align with the left side of the map */
+            background: rgba(0, 0, 0, 0.7); /* Semi-transparent black background for better contrast */
+            color: white; /* Set text color to white */
+            padding: 10px; /* Reduced padding */
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            max-width: 250px; /* Reduced width */
+            width: 40%; /* Reduced width */
+            height: 200px; /* Reduced height */
+            overflow-y: auto; /* Enable vertical scrolling */
             z-index: 1000;
-            background: white;
+        }
+        #controls label {
+            font-weight: bold;
+            display: block;
+            margin-bottom: 5px;
+            color: white; /* Ensure label text is white */
+        }
+        #controls input {
+            width: calc(100% - 20px);
+            padding: 8px;
+            margin-bottom: 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background-color: #333; /* Dark background for input fields */
+            color: white; /* Set input text color to white */
+        }
+        #controls button {
+            width: 100%;
             padding: 10px;
-            border-radius: 5px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.5);
-            max-width: 250px; /* Optional: to control the width of the control panel */
+            background-color: #007bff;
+            border: none;
+            color: white;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        #controls button:hover {
+            background-color: #0056b3;
         }
         .leaflet-control-zoom {
             position: absolute;
-            top: 10px; /* Position zoom controls at the top */
-            left: 10px; /* Position zoom controls on the left side */
+            top: 20px; /* Adjust this value if needed */
+            left: 20px;
             z-index: 1000;
+        }
+        .leaflet-routing-container {
+            color: #000000 !important; /* Set text color to black */
+            font-size: 14px !important; /* Increase text size */
+            background: #f8f9fa !important; /* Light background for better contrast */
+            border-radius: 8px !important; /* Rounded corners */
+            padding: 10px !important; /* Add some padding */
+            overflow-y: auto; /* Enable scrolling for the panel */
+            max-height: 300px; /* Set max height */
         }
     </style>
 </head>
@@ -38,11 +83,11 @@
     <div id="controls">
         <label for="placeA">Place A:</label>
         <input type="text" id="placeA" placeholder="Enter place name" value="London">
-        <br>
         <label for="placeB">Place B:</label>
         <input type="text" id="placeB" placeholder="Enter place name" value="Manchester">
-        <br>
         <button onclick="updateRoute()">Update Route</button>
+        <!-- This div will contain the direction panel -->
+        <div id="directionPanel"></div>
     </div>
 
     <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
@@ -75,11 +120,9 @@
         // Function to get coordinates from place names using Nominatim
         function geocodePlace(place, callback) {
             var url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(place)}&format=json&limit=1`;
-            console.log('Geocoding URL:', url); // Log the URL
             fetch(url)
                 .then(response => response.json())
                 .then(data => {
-                    console.log('Geocoding Response:', data); // Log the response
                     if (data.length > 0) {
                         var lat = parseFloat(data[0].lat);
                         var lon = parseFloat(data[0].lon);
@@ -99,25 +142,19 @@
             var placeA = document.getElementById('placeA').value;
             var placeB = document.getElementById('placeB').value;
 
-            console.log('Place A:', placeA); // Log place A
-            console.log('Place B:', placeB); // Log place B
-
             geocodePlace(placeA, function(latLngA) {
-                console.log('Coordinates for Place A:', latLngA); // Log coordinates for place A
                 geocodePlace(placeB, function(latLngB) {
-                    console.log('Coordinates for Place B:', latLngB); // Log coordinates for place B
-
                     // Clear previous route
                     routingControl.setWaypoints([latLngA, latLngB]);
 
                     // Update vehicle marker position
                     vehicleMarker.setLatLng(latLngA);
 
-                    // Animate vehicle with faster speed
+                    // Animate vehicle with a specified speed
                     routingControl.on('routesfound', function(e) {
                         var route = e.routes[0].coordinates;
                         var i = 0;
-                        var speed = 30; // Adjust this value to change the speed (in milliseconds)
+                        var speed = 75; // Faster speed (in milliseconds)
 
                         function animateVehicle() {
                             vehicleMarker.setLatLng(route[i]);
@@ -128,6 +165,11 @@
                         }
 
                         animateVehicle();
+                    });
+
+                    // Handle no route found
+                    routingControl.on('routeerror', function() {
+                        alert('Could not find a route between the places.');
                     });
                 });
             });
